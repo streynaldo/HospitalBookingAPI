@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\KlinikController;
 use App\Http\Controllers\PasienController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\BannerController;
 use App\Http\Controllers\CutiController;
 use App\Http\Controllers\DokterController;
 use App\Http\Controllers\JadwalController;
@@ -15,6 +16,8 @@ use App\Http\Controllers\UserController;
 Route::get('/', function () {
     return ['message' => 'Welcome To CiHos API'];
 });
+
+Route::get('/banners', [BannerController::class, 'getAllBanners']);
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
