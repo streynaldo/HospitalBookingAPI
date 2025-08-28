@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Klinik;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -21,9 +22,16 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
         $this->call([
-            DoctorSeeder::class,
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
+            PasienSeeder::class,
+            KlinikSeeder::class,
+            DokterSeeder::class,
+            JadwalSeeder::class,
+            SlotSeeder::class,
+            KategoriProfesionalSeeder::class,
+            ProfesionalSeeder::class,
+            CutiSeeder::class,
         ]);
     }
 }

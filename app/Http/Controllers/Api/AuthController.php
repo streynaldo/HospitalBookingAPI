@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Pasien;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -12,15 +13,28 @@ class AuthController extends Controller
     public function register(Request $r)
     {
         $data = $r->validate([
-            'name'     => 'required|string|max:100',
+            'nama'     => 'required|string|max:100',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
+            'no_telp'  => 'nullable|string|max:15',
+            'dob'      => 'nullable|date',
+            'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
         ]);
 
         $user = User::create([
-            'name'     => $data['name'],
+            'nama'     => $data['nama'],
             'email'    => $data['email'],
             'password' => bcrypt($data['password']),
+            'no_telp'  => $data['no_telp'] ?? null,
+            'dob'      => $data['dob'] ?? null,
+            'jenis_kelamin' => $data['jenis_kelamin'] ?? null,
+        ]);
+
+        Pasien::create([
+            'nama' => $data['nama'],
+            'dob' => $data['dob'] ?? null,
+            'user_id' => $user->id,
+            'jenis_kelamin' => $data['jenis_kelamin'] ?? null,
         ]);
 
         // abilities sesuai role
@@ -33,7 +47,6 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'token'      => $token->plainTextToken,
             'abilities'  => $abilities,
-            'role'       => $user->role,
             'user'       => $user,
         ], 201);
     }
@@ -64,8 +77,8 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'token'      => $token->plainTextToken,
             'abilities'  => $abilities,
-            'role'       => $user->role,
             'user'       => $user,
+            'message'    => 'Login successful',
         ]);
     }
 

@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Doctor;
+use App\Models\Slot;
 use Illuminate\Http\Request;
 
-class DoctorController extends Controller
+class SlotController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return Doctor::all();
+        //
     }
 
     /**
@@ -34,7 +34,7 @@ class DoctorController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Doctor $doctor)
+    public function show(Slot $slot)
     {
         //
     }
@@ -42,7 +42,7 @@ class DoctorController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Doctor $doctor)
+    public function edit(Slot $slot)
     {
         //
     }
@@ -50,7 +50,7 @@ class DoctorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Doctor $doctor)
+    public function update(Request $request, Slot $slot)
     {
         //
     }
@@ -58,13 +58,22 @@ class DoctorController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Doctor $doctor)
+    public function destroy(Slot $slot)
     {
         //
     }
 
-    private function authorizeAbility(Request $r, string $ability)
+    public function getSlotsByJadwalId($dokterId, $jadwalId)
     {
-        abort_unless(collect($r->user()->currentAccessToken()->abilities ?? [])->contains($ability), 403, 'Forbidden');
+        $slots = Slot::where('jadwal_id', $jadwalId)->get();
+
+        if ($slots->isEmpty()) {
+            return response()->json(['message' => 'Slot tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            "message" => "Data slot ditemukan",
+            'data' => $slots
+        ], 200);
     }
 }

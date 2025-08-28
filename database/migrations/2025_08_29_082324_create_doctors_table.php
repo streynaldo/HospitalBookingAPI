@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('doctors', function (Blueprint $table) {
+        Schema::create('dokters', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('specialty');
+            $table->string('nama');
+            $table->string('spesialis');
+            $table->string('gambar')->nullable();
+            $table->foreignId('klinik_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
