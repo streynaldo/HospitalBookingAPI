@@ -7,7 +7,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         @foreach ($banners as $banner)
         <div class="bg-white rounded-lg shadow dark:bg-gray-800">
-            <img src="{{ asset('storage/banners/' . $banner->gambar) }}" alt="{{ $banner->deskripsi }}" class="w-full h-48 object-cover rounded-t-lg">
+            <img src="{{ asset('storage/' . $banner->gambar) }}" alt="{{ $banner->deskripsi }}" class="w-full h-48 object-cover rounded-t-lg">
             <div class="p-4">
                 <p class="text-sm text-gray-700 dark:text-gray-300">{{ $banner->deskripsi }}</p>
                 <form action="{{ route('admin.banner.delete', $banner->id) }}" method="POST" class="mt-4">

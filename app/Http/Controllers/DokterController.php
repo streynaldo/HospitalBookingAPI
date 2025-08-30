@@ -53,11 +53,12 @@ class DokterController extends Controller
         $dokter->nama = $request->nama;
         $dokter->spesialis = $request->spesialis;
         $dokter->klinik_id = $request->klinik_id;
-        $dokter->gambar_url = asset($dokter->gambar ?? 'storage/' . $dokter->gambar); // Set the full URL for the image
+        
 
         if ($request->hasFile('gambar')) {
             $imageName = $request->file('gambar')->store('dokter', 'public'); // Store in 'storage/app/public/dokter'
             $dokter->gambar = $imageName; // Save the relative path
+            $dokter->gambar_url = asset($dokter->gambar ?? 'storage/' . $dokter->gambar); // Set the full URL for the image
         }
 
         $dokter->save();

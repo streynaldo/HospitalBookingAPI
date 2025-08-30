@@ -35,16 +35,18 @@ class BannerController extends Controller
         ]);
 
         // Generate a custom file name
-        $originalName = pathinfo($request->file('gambar')->getClientOriginalName(), PATHINFO_FILENAME);
-        $extension = $request->file('gambar')->getClientOriginalExtension();
-        $customFileName = $originalName . '-' . time() . '.' . $extension;
+        // $originalName = pathinfo($request->file('gambar')->getClientOriginalName(), PATHINFO_FILENAME);
+        // $extension = $request->file('gambar')->getClientOriginalExtension();
+        // $customFileName = $originalName . '-' . time() . '.' . $extension;
 
         // Store the file with the custom name
-        $request->file('gambar')->storeAs('banners', $customFileName, 'public');
+        // $gambar = $request->file('gambar')->storeAs('banners', $customFileName, 'public');
+        $imageName = $request->file('gambar')->store('banners', 'public');
 
         Banner::create([
-            'gambar' => $customFileName,
-            'deskripsi' => $request->deskripsi,
+            'gambar' => $imageName,
+            'deskripsi' => $request->deskripsi,            
+            'gambar_url' => asset('storage/' . $imageName),
         ]);
 
         return redirect()->route('admin.banner.index')->with('success', 'Banner berhasil ditambahkan.');
@@ -81,7 +83,7 @@ class BannerController extends Controller
     {
         $banner = Banner::findOrFail($bannerId);
         // remove the image file from storage
-        $path = storage_path('app/public/banners/' . $banner->gambar);
+        $path = storage_path('app/public/' . $banner->gambar);
         if (file_exists($path)) {
             unlink($path);
         }
