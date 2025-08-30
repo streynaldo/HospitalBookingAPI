@@ -13,7 +13,9 @@ class PasienController extends Controller
      */
     public function index()
     {
-        //
+        $pasiens = Pasien::paginate(10);
+
+        return view('pasien.index', compact('pasiens'));
     }
 
     /**
@@ -21,7 +23,7 @@ class PasienController extends Controller
      */
     public function create()
     {
-        //
+        // return view('pasien.create');
     }
 
     /**
@@ -43,9 +45,10 @@ class PasienController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Pasien $pasien)
+    public function edit($pasienId)
     {
-        //
+        $pasien = Pasien::find($pasienId);
+        return view('pasien.edit', compact('pasien'));
     }
 
     /**
@@ -53,7 +56,14 @@ class PasienController extends Controller
      */
     public function update(Request $request, $pasienId)
     {
-        // 
+        $pasien = Pasien::find($pasienId);
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'dob' => 'required|date',
+            'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+        ]);
+        $pasien->update($request->all());
+        return redirect()->route('admin.pasien.index')->with('success', 'Data pasien berhasil diperbarui');
     }
 
     /**
@@ -61,7 +71,9 @@ class PasienController extends Controller
      */
     public function destroy($pasienId)
     {
-        // 
+        $pasien = Pasien::find($pasienId);
+        $pasien->delete();
+        return redirect()->route('admin.pasien.index')->with('success', 'Data pasien berhasil dihapus');
     }
 
     public function createPasien(Request $request)

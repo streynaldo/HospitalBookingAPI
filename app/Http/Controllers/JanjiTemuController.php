@@ -16,7 +16,9 @@ class JanjiTemuController extends Controller
      */
     public function index()
     {
-        //
+        $janjiTemus = JanjiTemu::with(['pasien', 'dokter', 'slot'])->paginate(10);
+        // dd($janjiTemus);
+        return view('janjitemu.index', compact('janjiTemus'));
     }
 
     /**
@@ -46,9 +48,42 @@ class JanjiTemuController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(JanjiTemu $janjiTemu)
+    public function edit($janjiTemuId)
     {
-        //
+        $janjitemu = JanjiTemu::with(['pasien', 'dokter', 'slot'])->findOrFail($janjiTemuId);
+
+        // Get available days for the doctor
+        $dokterHariTersedia = Jadwal::where('dokter_id', $janjitemu->dokter_id)
+            ->pluck('hari')
+            ->toArray();
+
+        // Map English day names to Indonesian
+        $hariArray = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu',
+        ];
+
+        // Get the day of the week in Indonesian
+        $hari = $hariArray[date('l', strtotime($janjitemu->tanggal))];
+
+        // Fetch all slots for the doctor on the selected date
+        $slots = [];
+        if ($janjitemu->tanggal) {
+            $slots = Jadwal::where('dokter_id', $janjitemu->dokter_id)
+                ->where('hari', $hari)
+                ->with('slots') // Ensure the slot relationship is loaded
+                ->get()
+                ->pluck('slots')
+                ->flatten();
+        }
+        // dd($slots);
+
+        return view('janjitemu.edit', compact('janjitemu', 'dokterHariTersedia', 'slots'));
     }
 
     /**
@@ -64,7 +99,9 @@ class JanjiTemuController extends Controller
      */
     public function destroy($janjiTemuId)
     {
-        //
+        $janjiTemu = JanjiTemu::findOrFail($janjiTemuId);
+        $janjiTemu->delete();
+        return redirect()->route('admin.janjitemu.index')->with('success', 'Janji temu berhasil dihapus.');
     }
 
     public function createJanjiTemu(Request $request)

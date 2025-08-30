@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,14 +29,30 @@ class AuthenticatedSessionController extends Controller
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
-
+    
+        // 1) Autentikasi dulu
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'Email atau password salah.']);
+            return back()
+                ->withErrors(['email' => 'Email atau password salah.'])
+                ->onlyInput('email');
         }
-
+    
+        // 2) Regenerate session setelah berhasil login
         $request->session()->regenerate();
-
-        return redirect()->intended(route('dashboard', absolute: false));
+    
+        // 3) Cek role kemudian
+        if (!Auth::user()->hasRole('admin')) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+    
+            return back()
+                ->withErrors(['email' => 'Akun tidak memiliki akses admin.'])
+                ->onlyInput('email');
+        }
+    
+        // 4) Redirect aman (hormati intended URL)
+        return redirect()->intended(route('admin.dashboard'));
     }
 
     /**
@@ -49,6 +66,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('login')->with('status', 'You have been logged out successfully.');
     }
 }

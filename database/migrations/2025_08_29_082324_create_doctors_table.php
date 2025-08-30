@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nama');
             $table->string('spesialis');
             $table->string('gambar')->nullable();
+            $table->string('gambar_url')->nullable();
             $table->foreignId('klinik_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

@@ -12,7 +12,8 @@ class BannerController extends Controller
      */
     public function index()
     {
-        //
+        $banners = Banner::all();
+        return view('banner.index', compact('banners'));
     }
 
     /**
@@ -20,7 +21,7 @@ class BannerController extends Controller
      */
     public function create()
     {
-        //
+        return view('banner.add');
     }
 
     /**
@@ -28,7 +29,25 @@ class BannerController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'gambar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'deskripsi' => 'nullable|string|max:255',
+        ]);
+
+        // Generate a custom file name
+        $originalName = pathinfo($request->file('gambar')->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension = $request->file('gambar')->getClientOriginalExtension();
+        $customFileName = $originalName . '-' . time() . '.' . $extension;
+
+        // Store the file with the custom name
+        $request->file('gambar')->storeAs('banners', $customFileName, 'public');
+
+        Banner::create([
+            'gambar' => $customFileName,
+            'deskripsi' => $request->deskripsi,
+        ]);
+
+        return redirect()->route('admin.banner.index')->with('success', 'Banner berhasil ditambahkan.');
     }
 
     /**
@@ -58,9 +77,17 @@ class BannerController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Banner $banner)
+    public function destroy($bannerId)
     {
-        //
+        $banner = Banner::findOrFail($bannerId);
+        // remove the image file from storage
+        $path = storage_path('app/public/banners/' . $banner->gambar);
+        if (file_exists($path)) {
+            unlink($path);
+        }
+        $banner->delete();
+        return redirect()->route('admin.banner.index')
+            ->with('success', 'Banner deleted successfully.');
     }
 
     public function getAllBanners()

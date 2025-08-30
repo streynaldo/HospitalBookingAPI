@@ -18,6 +18,8 @@ return new class extends Migration
             $table->text('deskripsi');
             $table->string('gambar')->nullable();
             $table->string('icon')->nullable();
+            $table->string('gambar_url')->nullable();
+            $table->string('icon_url')->nullable();
         });
     }
 

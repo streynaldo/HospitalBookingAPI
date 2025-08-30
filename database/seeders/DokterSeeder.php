@@ -18,31 +18,26 @@ class DokterSeeder extends Seeder
             [
                 'nama' => 'Dr. John Doe',
                 'spesialis' => 'Ortopedi Tangan',
-                'gambar' => 'doctor1.jpg',
                 'klinik_id' => 1
             ],
             [
                 'nama' => 'Dr. Steven Doe',
                 'spesialis' => 'Ortopedi Kaki',
-                'gambar' => 'doctor1.jpg',
                 'klinik_id' => 1
             ],
             [
                 'nama' => 'Dr. Michael Doe',
                 'spesialis' => 'Ortopedi Kepala',
-                'gambar' => 'doctor1.jpg',
                 'klinik_id' => 1
             ],
             [
                 'nama' => 'Dr. Jane Smith',
                 'spesialis' => 'Dermatologist',
-                'gambar' => 'doctor2.jpg',
                 'klinik_id' => 5
             ],
             [
                 'nama' => 'Dr. Emily Johnson',
                 'spesialis' => 'Pediatrician',
-                'gambar' => 'doctor3.jpg',
                 'klinik_id' => 4
             ]
         ];

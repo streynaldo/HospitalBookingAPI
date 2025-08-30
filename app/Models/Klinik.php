@@ -10,7 +10,9 @@ class Klinik extends Model
         'nama', 
         'deskripsi',
         'gambar',
-        'icon'
+        'icon',
+        'gambar_url',
+        'icon_url'
     ];
 
     public function dokter()
