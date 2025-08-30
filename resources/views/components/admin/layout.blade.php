@@ -6,6 +6,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {{-- app icon --}}
+    <link rel="icon" href="{{ asset('image/Logogram.png') }}" type="image/png">
     <title>{{ $title }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
