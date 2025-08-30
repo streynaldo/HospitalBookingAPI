@@ -60,8 +60,6 @@ class JadwalController extends Controller
             $jadwal->slots()->create([
                 'slot_mulai' => $slotMulai,
                 'slot_selesai' => $slotSelesai,
-                'slot_mulai' => $slotMulai,
-                'slot_selesai' => $slotSelesai,
             ]);
         }
 
