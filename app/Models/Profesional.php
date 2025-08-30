@@ -14,7 +14,7 @@ class Profesional extends Model
     ];
     public function kategori_profesional()
     {
-        return $this->belongsTo(Kategoriprofesional::class);
+        return $this->belongsTo(KategoriProfesional::class);
     }
     public function dokter()
     {
