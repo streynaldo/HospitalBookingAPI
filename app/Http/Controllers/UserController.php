@@ -84,6 +84,20 @@ class UserController extends Controller
 
         $user->update($data);
 
+        if ($user->hasRole('pasien')) {
+            $pasien = Pasien::where('user_id', $user->id)
+                ->where('nama', $user->nama)
+                ->where('dob', $user->dob)
+                ->first();
+            if ($pasien) {
+                $pasien->update([
+                    'nama' => $data['nama'] ?? $pasien->nama,
+                    'dob' => $data['dob'] ?? $pasien->dob,
+                    'jenis_kelamin' => $data['jenis_kelamin'] ?? $pasien->jenis_kelamin,
+                ]);
+            }
+        }
+
         return redirect()->route('admin.user.index')->with('success', 'User berhasil diupdate');
     }
     public function updateAdmin(Request $request, $userId){

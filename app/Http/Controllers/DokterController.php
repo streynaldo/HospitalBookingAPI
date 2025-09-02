@@ -21,7 +21,7 @@ class DokterController extends Controller
             $query->where('klinik_id', $request->klinik_id);
         }
 
-        $dokters = $query->paginate(10);
+        $dokters = $query->paginate(9);
         $kliniks = Klinik::all(); // Retrieve klinik data for filtering
 
         return view('dokter.index', compact('dokters', 'kliniks'));
