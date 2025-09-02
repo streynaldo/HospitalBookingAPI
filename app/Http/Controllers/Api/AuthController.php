@@ -30,6 +30,8 @@ class AuthController extends Controller
             'jenis_kelamin' => $data['jenis_kelamin'] ?? null,
         ]);
 
+        $user->assignRole('pasien');
+
         Pasien::create([
             'nama' => $data['nama'],
             'dob' => $data['dob'] ?? null,
