@@ -16,18 +16,18 @@ class AuthController extends Controller
             'nama'     => 'required|string|max:100',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
-            'no_telp'  => 'nullable|string|max:15',
-            'dob'      => 'nullable|date',
-            'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
+            'no_telp' => ['required', 'regex:/^\+?[0-9]{10,15}$/'],
+            'dob'      => 'required|date',
+            'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
         ]);
 
         $user = User::create([
             'nama'     => $data['nama'],
             'email'    => $data['email'],
             'password' => bcrypt($data['password']),
-            'no_telp'  => $data['no_telp'] ?? null,
-            'dob'      => $data['dob'] ?? null,
-            'jenis_kelamin' => $data['jenis_kelamin'] ?? null,
+            'no_telp'  => $data['no_telp'],
+            'dob'      => $data['dob'],
+            'jenis_kelamin' => $data['jenis_kelamin'],
         ]);
 
         $user->assignRole('pasien');

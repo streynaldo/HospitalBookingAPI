@@ -44,7 +44,7 @@ class UserController extends Controller
             'nama'     => 'required|string|max:100',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
-            'no_telp'  => 'required|string|max:15',
+            'no_telp' => ['required', 'regex:/^\+?[0-9]{10,15}$/'],
             'dob'      => 'required|date',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
         ]);
@@ -73,7 +73,7 @@ class UserController extends Controller
         $data = $request->validate([
             'nama'     => 'sometimes|required|string|max:100',
             'email'    => 'sometimes|required|email|unique:users,email,' . $user->id,
-            'no_telp'  => 'required|string|max:15',
+            'no_telp' => ['required', 'regex:/^\+?[0-9]{10,15}$/'],
             'dob'      => 'required|date',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
         ]);
@@ -106,7 +106,7 @@ class UserController extends Controller
         $data = $request->validate([
             'nama'     => 'sometimes|required|string|max:100',
             'email'    => 'sometimes|required|email|unique:users,email,' . $user->id,
-            'no_telp'  => 'required|string|max:15',
+            'no_telp' => ['required', 'regex:/^\+?[0-9]{10,15}$/'],
             'dob'      => 'required|date',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
         ]);
@@ -153,7 +153,7 @@ class UserController extends Controller
             'nama'     => 'sometimes|required|string|max:100',
             'email'    => 'sometimes|required|email|unique:users,email,' . $user->id,
             'password' => 'sometimes|required|string|min:6',
-            'no_telp'  => 'required|string|max:15',
+            'no_telp' => ['required', 'regex:/^\+?[0-9]{10,15}$/'],
             'dob'      => 'required|date',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
         ]);
