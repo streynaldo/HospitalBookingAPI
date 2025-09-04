@@ -8,6 +8,7 @@ class JanjiTemu extends Model
 {
     protected $fillable = [
         'tanggal',
+        'tipe_pasien',
         'pasien_id',
         'dokter_id',
         'slot_id',

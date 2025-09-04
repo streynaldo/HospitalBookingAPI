@@ -6,6 +6,7 @@ use App\Models\Cuti;
 use App\Models\Jadwal;
 use App\Models\Pasien;
 use App\Models\JanjiTemu;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -113,6 +114,15 @@ class JanjiTemuController extends Controller
             'dokter_id' => 'required|exists:dokters,id',
             'slot_id' => 'required|exists:slots,id',
         ]);
+
+        $user = User::find($userId);
+        $pasien = Pasien::find($validatedData['pasien_id']);
+
+        if ($user->nama == $pasien->nama && $user->dob == $pasien->dob) {
+            $validatedData['tipe_pasien'] = 'diri_sendiri';
+        } else {
+            $validatedData['tipe_pasien'] = 'orang_lain';
+        }
 
         if (Pasien::where('id', $validatedData['pasien_id'])->where('user_id', $userId)->doesntExist()) {
             return response()->json(['message' => 'Akses ditolak'], 403);
