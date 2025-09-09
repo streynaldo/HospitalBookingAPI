@@ -79,7 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/apns/test', [ApnsTestController::class, 'sendToToken']); // proteksi sesuai kebutuhan
 
-Route::post('/apns/test/user/{user}', [ApnsTestController::class, 'sendToUser']);
+Route::post('/apns/test/user/{userId}', [ApnsTestController::class, 'sendToUser']);
 
 
 

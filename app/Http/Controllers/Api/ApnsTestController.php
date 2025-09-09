@@ -23,18 +23,22 @@ class ApnsTestController extends Controller
         return response()->json($resp);
     }
 
-    public function sendToUser(Request $r, ApnsService $apns, User $user)
+    public function sendToUser(Request $r, ApnsService $apns, $userId)
     {
         $data = $r->validate([
             'title' => 'required|string',
             'body'  => 'nullable|string',
         ]);
 
+        $user = User::findOrFail($userId);
         $tokens = $user->deviceTokens()->where('platform', 'ios')->pluck('token');
         $results = [];
         foreach ($tokens as $t) {
             $results[] = $apns->sendAlert($t, $data['title'], $data['body'] ?? null);
         }
-        return response()->json($results);
+        return response()->json([
+            'success' => true,
+            'results' => $results,
+        ]);
     }
 }
