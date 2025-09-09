@@ -1,17 +1,19 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CutiController;
+use App\Http\Controllers\SlotController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\BannerController;
+use App\Http\Controllers\DokterController;
+use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\KlinikController;
 use App\Http\Controllers\PasienController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\BannerController;
-use App\Http\Controllers\CutiController;
-use App\Http\Controllers\DokterController;
-use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JanjiTemuController;
 use App\Http\Controllers\ProfesionalController;
-use App\Http\Controllers\SlotController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\Api\ApnsTestController;
+use App\Http\Controllers\Api\DeviceTokenController;
 
 Route::get('/', function () {
     return ['message' => 'Welcome To CiHos API'];
@@ -70,6 +72,15 @@ Route::prefix('profile')->group(function () {
         Route::delete('/', [UserController::class, 'deleteAccount']);
     });
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/device-tokens', [DeviceTokenController::class, 'store']);
+});
+
+Route::post('/apns/test', [ApnsTestController::class, 'sendToToken']); // proteksi sesuai kebutuhan
+
+Route::post('/apns/test/user/{user}', [ApnsTestController::class, 'sendToUser']);
+
 
 
 // Pake Token Coba

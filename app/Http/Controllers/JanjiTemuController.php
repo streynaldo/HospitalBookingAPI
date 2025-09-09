@@ -3,11 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cuti;
+use App\Models\Slot;
+use App\Models\User;
 use App\Models\Jadwal;
 use App\Models\Pasien;
 use App\Models\JanjiTemu;
-use App\Models\User;
+use App\Models\DeviceToken;
 use Illuminate\Http\Request;
+use App\Services\ApnsService;
+use Illuminate\Support\Carbon;
+use App\Jobs\SendJanjiTemuReminder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
 class JanjiTemuController extends Controller
@@ -105,17 +111,17 @@ class JanjiTemuController extends Controller
         return redirect()->route('admin.janjitemu.index')->with('success', 'Janji temu berhasil dihapus.');
     }
 
-    public function createJanjiTemu(Request $request)
+    public function createJanjiTemu(Request $request, ApnsService $apns)
     {
         $userId = Auth::id();
         $validatedData = $request->validate([
-            'tanggal' => 'required|date',
+            'tanggal'   => 'required|date',          // format Y-m-d
             'pasien_id' => 'required|exists:pasiens,id',
             'dokter_id' => 'required|exists:dokters,id',
-            'slot_id' => 'required|exists:slots,id',
+            'slot_id'   => 'required|exists:slots,id',
         ]);
 
-        $user = User::find($userId);
+        $user   = User::find($userId);
         $pasien = Pasien::find($validatedData['pasien_id']);
 
         if ($user->nama == $pasien->nama && $user->dob == $pasien->dob) {
@@ -128,35 +134,64 @@ class JanjiTemuController extends Controller
             return response()->json(['message' => 'Akses ditolak'], 403);
         }
 
-        // check apakah tanggal janji temu lebih dari hari ini
+        // tanggal harus >= hari ini
         if (strtotime($validatedData['tanggal']) < strtotime(date('Y-m-d'))) {
-            return response()->json(['message' => 'Tanggal janji temu harus lebih dari atau sama dengan hari ini'], 400);
+            return response()->json(['message' => 'Tanggal janji temu harus ≥ hari ini'], 400);
         }
 
-        // check apakah tanggal janji temu tidak bertabrakan dengan tanggal mulai hingga tanggal akhir cuti dokter
+        // tidak bentrok cuti
         $cuti = Cuti::where('dokter_id', $validatedData['dokter_id'])
             ->where('tanggal_mulai', '<=', $validatedData['tanggal'])
             ->where('tanggal_selesai', '>=', $validatedData['tanggal'])
             ->exists();
-
         if ($cuti) {
             return response()->json(['message' => 'Tanggal janji temu bertabrakan dengan jadwal cuti dokter'], 400);
         }
 
-        // check apakah hari pada jadwal janji temu sudah sesuai dengan hari pada jadwal dokter (hari nya dalam bahasa indonesia)
+        // hari sesuai jadwal dokter
         $hariArray = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         $hari = $hariArray[date('w', strtotime($validatedData['tanggal']))];
         $jadwalExists = Jadwal::where('dokter_id', $validatedData['dokter_id'])
             ->where('hari', $hari)
             ->exists();
         if (!$jadwalExists) {
-            return response()->json(['message' => 'Hari pada jadwal janji temu tidak sesuai dengan hari pada jadwal dokter'], 400);
+            return response()->json(['message' => 'Hari pada jadwal janji temu tidak sesuai dengan jadwal dokter'], 400);
         }
 
+        // === Simpan janji temu ===
         $janjiTemu = JanjiTemu::create($validatedData);
+
+        // === Kirim KONFIRMASI sekarang (opsional, enak untuk UX) ===
+        $tokens = DeviceToken::where('user_id', $userId)->where('platform', 'ios')->pluck('token');
+        // if ($tokens->isNotEmpty()) {
+        //     $tz = config('app.timezone', 'Asia/Jakarta');
+        //     $slot = Slot::find($validatedData['slot_id']);
+        //     // GANTI kalau nama kolom beda:
+        //     $slotStart = $slot?->slot_mulai; // 'HH:mm'
+        //     $startAt   = $slotStart ? Carbon::parse("{$validatedData['tanggal']} {$slotStart}", $tz) : null;
+        //     $jamTgl    = $startAt ? $startAt->translatedFormat('d M Y, H:i') : $validatedData['tanggal'];
+
+        //     foreach ($tokens as $t) {
+        //         $apns->sendAlert(
+        //             deviceToken: $t,
+        //             title: 'Konfirmasi Janji Temu',
+        //             body: "Janji temu kamu terjadwal pada {$jamTgl}.",
+        //             badge: 1,
+        //             custom: [
+        //                 'type'        => 'appointment_created',
+        //                 'janji_temu'  => $janjiTemu->id,
+        //                 'dokter_id'   => $janjiTemu->dokter_id,
+        //             ]
+        //         );
+        //     }
+        // }
+
+        // === Jadwalkan REMINDER H-60 ===
+        $this->scheduleReminderHMinus60($janjiTemu->id, $validatedData['tanggal'], $validatedData['slot_id']);
+
         return response()->json([
             'message' => 'Janji temu berhasil dibuat',
-            'data' => $janjiTemu
+            'data'    => $janjiTemu
         ], 201);
     }
 
@@ -165,61 +200,91 @@ class JanjiTemuController extends Controller
         $userId = Auth::id();
 
         $validatedData = $request->validate([
-            'tanggal' => 'required|date',
+            'tanggal'   => 'required|date',
             'pasien_id' => 'required|exists:pasiens,id',
             'dokter_id' => 'required|exists:dokters,id',
-            'slot_id' => 'required|exists:slots,id',
+            'slot_id'   => 'required|exists:slots,id',
         ]);
 
-        $janjiTemu = JanjiTemu::findOrFail($janjiTemuId);
+        $janjiTemu = JanjiTemu::with(['pasien'])->findOrFail($janjiTemuId);
         if ($janjiTemu->pasien->user_id !== $userId) {
             return response()->json(['message' => 'Akses ditolak'], 403);
         }
 
-        // check apakah tanggal janji temu lebih dari hari ini
+        // tanggal ≥ hari ini
         if (strtotime($validatedData['tanggal']) < strtotime(date('Y-m-d'))) {
-            return response()->json(['message' => 'Tanggal janji temu harus lebih dari atau sama dengan hari ini'], 400);
+            return response()->json(['message' => 'Tanggal janji temu harus ≥ hari ini'], 400);
         }
 
-        // check apakah tanggal janji temu tidak bertabrakan dengan tanggal mulai hingga tanggal akhir cuti dokter
+        // tidak bentrok cuti
         $cuti = Cuti::where('dokter_id', $validatedData['dokter_id'])
             ->where('tanggal_mulai', '<=', $validatedData['tanggal'])
             ->where('tanggal_selesai', '>=', $validatedData['tanggal'])
             ->exists();
-
         if ($cuti) {
             return response()->json(['message' => 'Tanggal janji temu bertabrakan dengan jadwal cuti dokter'], 400);
         }
 
-        // check apakah hari pada jadwal janji temu sudah sesuai dengan hari pada jadwal dokter (hari nya dalam bahasa indonesia)
+        // hari sesuai jadwal dokter
         $hariArray = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         $hari = $hariArray[date('w', strtotime($validatedData['tanggal']))];
         $jadwalExists = Jadwal::where('dokter_id', $validatedData['dokter_id'])
             ->where('hari', $hari)
             ->exists();
         if (!$jadwalExists) {
-            return response()->json(['message' => 'Hari pada jadwal janji temu tidak sesuai dengan hari pada jadwal dokter'], 400);
+            return response()->json(['message' => 'Hari pada jadwal janji temu tidak sesuai dengan jadwal dokter'], 400);
         }
 
         $janjiTemu->update($validatedData);
 
+        // Jadwalkan ulang REMINDER H-60; job akan self-guard jika jadwal lama masih ada
+        $this->scheduleReminderHMinus60($janjiTemu->id, $validatedData['tanggal'], $validatedData['slot_id']);
+
         return response()->json([
             'message' => 'Janji temu berhasil diperbarui',
-            'data' => $janjiTemu
+            'data'    => $janjiTemu
         ], 200);
     }
 
     public function deleteJanjiTemuById($janjiTemuId)
     {
-        
-        $janjiTemu = JanjiTemu::findOrFail($janjiTemuId);
+        $janjiTemu = JanjiTemu::with(['pasien'])->findOrFail($janjiTemuId);
         $userId = Auth::id();
         if ($janjiTemu->pasien->user_id !== $userId) {
             return response()->json(['message' => 'Akses ditolak'], 403);
         }
         $janjiTemu->delete();
 
+        // Tidak perlu cancel job: saat eksekusi nanti job akan cek janjiTemu sudah tidak ada → langsung return
         return response()->json(['message' => 'Janji temu berhasil dihapus'], 200);
+    }
+
+    private function scheduleReminderHMinus60(int $janjiTemuId, string $tanggal, int $slotId): void
+    {
+        $tz   = config('app.timezone', 'Asia/Jakarta');
+        $slot = Slot::find($slotId);
+
+        // GANTI kolom ini sesuai schema:
+        $slotStart = $slot?->slot_mulai; // 'HH:mm'
+        if (!$slotStart) {
+            // log error supaya kamu tahu kolom slot yang dipakai
+            Log::warning('Slot start time column missing for reminder', ['slot_id' => $slotId]);
+            return;
+        }
+
+        $startAtLocal = Carbon::parse("{$tanggal} {$slotStart}", $tz);
+        $remindAtLocal = $startAtLocal->copy()->subMinutes(60);
+
+        // Jangan jadwalkan masa lalu
+        if ($remindAtLocal->isPast()) return;
+
+        // Simpan expectedStartAt (UTC ISO) untuk verifikasi saat job jalan
+        $expectedUtcIso = $startAtLocal->copy()->utc()->toIso8601String();
+
+        SendJanjiTemuReminder::dispatch(
+            janjiTemuId: $janjiTemuId,
+            expectedStartAtIso: $expectedUtcIso
+        )->delay($remindAtLocal);
     }
 
     public function checkTotalPasien($slotId, $tanggal)
@@ -234,9 +299,10 @@ class JanjiTemuController extends Controller
         ], 200);
     }
 
-    public function getAllJanjiTemuByUserId(){
+    public function getAllJanjiTemuByUserId()
+    {
         $userId = Auth::id();
-        $janjiTemu = JanjiTemu::whereHas('pasien', function($query) use ($userId){
+        $janjiTemu = JanjiTemu::whereHas('pasien', function ($query) use ($userId) {
             $query->where('user_id', $userId);
         })->with(['pasien', 'dokter', 'slot'])->get();
 
