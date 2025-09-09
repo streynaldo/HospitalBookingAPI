@@ -7,6 +7,8 @@ use Pushok\Client as ApnsClient;
 use Pushok\Notification as ApnsNotification;
 use Pushok\Payload as ApnsPayload;
 use Pushok\Payload\Alert as ApnsAlert;
+use App\Models\DeviceToken;
+
 
 class ApnsService
 {
@@ -46,7 +48,10 @@ class ApnsService
         $client->addNotification($notification);
 
         $responses = $client->push();
-        return $this->formatResponses($responses, $deviceToken);
+        $out = $this->formatResponses($responses, $deviceToken);
+
+        $this->removeInvalidTokens($out);   // ⬅️ tambahkan baris ini
+        return $out;
     }
 
     /** Silent push (background) — tidak tampil banner */
@@ -67,7 +72,10 @@ class ApnsService
         $client->addNotification($notification);
 
         $responses = $client->push();
-        return $this->formatResponses($responses, $deviceToken);
+        $out = $this->formatResponses($responses, $deviceToken);
+
+        $this->removeInvalidTokens($out);   // ⬅️
+        return $out;
     }
 
     /** Rich media (perlu Notification Service Extension di iOS) */
@@ -91,7 +99,10 @@ class ApnsService
         $client->addNotification($notification);
 
         $responses = $client->push();
-        return $this->formatResponses($responses, $deviceToken);
+        $out = $this->formatResponses($responses, $deviceToken);
+
+        $this->removeInvalidTokens($out);   // ⬅️
+        return $out;
     }
 
     private function formatResponses(iterable $responses, string $token): array
@@ -112,5 +123,28 @@ class ApnsService
             ];
         }
         return $out;
+    }
+
+    /**
+     * Hapus token yang invalid berdasarkan respons APNs.
+     * Kriteria: status 400/410 atau reason mengandung baddevicetoken/unregistered/devicetokennotfortopic.
+     */
+    private function removeInvalidTokens(array $results): void
+    {
+        foreach ($results as $r) {
+            $status = (int)($r['status'] ?? 0);
+            $reason = strtolower((string)($r['reason'] ?? ''));
+            $token  = $r['token'] ?? null;
+
+            $isInvalid =
+                in_array($status, [400, 410], true) ||
+                str_contains($reason, 'baddevicetoken') ||
+                str_contains($reason, 'unregistered') ||
+                str_contains($reason, 'devicetokennotfortopic');
+
+            if ($isInvalid && $token) {
+                DeviceToken::where('token', $token)->delete();
+            }
+        }
     }
 }
