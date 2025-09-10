@@ -189,6 +189,9 @@ class JanjiTemuController extends Controller
         // === Jadwalkan REMINDER H-60 ===
         $this->scheduleReminderHMinus60($janjiTemu->id, $validatedData['tanggal'], $validatedData['slot_id']);
 
+
+        Log::info('Janji temu created', ['janji_temu_id' => $janjiTemu->id, 'user_id' => $userId]);
+
         return response()->json([
             'message' => 'Janji temu berhasil dibuat',
             'data'    => $janjiTemu
