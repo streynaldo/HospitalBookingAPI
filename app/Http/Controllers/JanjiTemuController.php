@@ -288,6 +288,11 @@ class JanjiTemuController extends Controller
             janjiTemuId: $janjiTemuId,
             expectedStartAtIso: $expectedUtcIso
         )->delay($remindAtLocal);
+        Log::info('Reminder H-60 scheduled', [
+            'janji_temu_id' => $janjiTemuId,
+            'remind_at' => $remindAtLocal->toIso8601String(),
+            'expected_start_at_utc' => $expectedUtcIso,
+        ]);
     }
 
     public function checkTotalPasien($slotId, $tanggal)
