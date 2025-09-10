@@ -187,7 +187,7 @@ class JanjiTemuController extends Controller
         // }
 
         // === Jadwalkan REMINDER H-60 ===
-        $this->scheduleReminderHMinus60($janjiTemu->id, $validatedData['tanggal'], $validatedData['slot_id']);
+        $this->scheduleReminderHMinus60($janjiTemu->id, $validatedData['tanggal'], $validatedData['slot_id'], $apns);
 
 
         Log::info('Janji temu created', ['janji_temu_id' => $janjiTemu->id, 'user_id' => $userId]);
@@ -241,7 +241,7 @@ class JanjiTemuController extends Controller
         $janjiTemu->update($validatedData);
 
         // Jadwalkan ulang REMINDER H-60; job akan self-guard jika jadwal lama masih ada
-        $this->scheduleReminderHMinus60($janjiTemu->id, $validatedData['tanggal'], $validatedData['slot_id']);
+        $this->scheduleReminderHMinus60($janjiTemu->id, $validatedData['tanggal'], $validatedData['slot_id'], new ApnsService());
 
         return response()->json([
             'message' => 'Janji temu berhasil diperbarui',
@@ -262,7 +262,7 @@ class JanjiTemuController extends Controller
         return response()->json(['message' => 'Janji temu berhasil dihapus'], 200);
     }
 
-    private function scheduleReminderHMinus60(int $janjiTemuId, string $tanggal, int $slotId): void
+    private function scheduleReminderHMinus60(int $janjiTemuId, string $tanggal, int $slotId, ApnsService $apns): void
     {
         $tz   = config('app.timezone', 'Asia/Jakarta');
         $slot = Slot::find($slotId);
@@ -279,7 +279,35 @@ class JanjiTemuController extends Controller
         $remindAtLocal = $startAtLocal->copy()->subMinutes(60);
 
         // Jangan jadwalkan masa lalu
-        if ($remindAtLocal->isPast()) return;
+        if ($remindAtLocal->isPast()) {
+            $janjiTemu = JanjiTemu::find($janjiTemuId);
+            $userId = $janjiTemu->pasien->user_id ?? null;
+            $tokens = DeviceToken::where('user_id', $userId)->where('platform', 'ios')->pluck('token');
+            if ($tokens->isNotEmpty()) {
+                $tz = config('app.timezone', 'Asia/Jakarta');
+                $slot = Slot::find($slotId);
+                // GANTI kalau nama kolom beda:
+                $slotStart = $slot?->slot_mulai; // 'HH:mm'
+                $startAt   = $slotStart ? Carbon::parse("{$tanggal} {$slotStart}", $tz) : null; // Use $tanggal instead of $validatedData['tanggal']
+                $jamTgl    = $startAt ? $startAt->translatedFormat('d M Y, H:i') : $tanggal; // Use $tanggal instead of $validatedData['tanggal']
+
+                foreach ($tokens as $t) {
+                    $apns->sendAlert(
+                        deviceToken: $t,
+                        title: 'Reminder Janji Temu',
+                        body: "Janji temu kamu pada {$jamTgl} sudah dekat. harap datang 15 menit sebelumnya untuk registrasi ulang",
+                        badge: 1,
+                        custom: [
+                            'type'        => 'appointment_created',
+                            'janji_temu'  => $janjiTemu->id,
+                            'dokter_id'   => $janjiTemu->dokter_id,
+                        ]
+                    );
+                }
+            }
+
+            Log::info('Reminder notification sent', ['janji_temu_id' => $janjiTemu->id, 'tokens' => $tokens]);
+        }
 
         // Simpan expectedStartAt (UTC ISO) untuk verifikasi saat job jalan
         $expectedUtcIso = $startAtLocal->copy()->utc()->toIso8601String();
