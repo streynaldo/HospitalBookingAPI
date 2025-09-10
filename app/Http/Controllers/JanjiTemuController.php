@@ -307,20 +307,21 @@ class JanjiTemuController extends Controller
             }
 
             Log::info('Reminder notification sent', ['janji_temu_id' => $janjiTemu->id, 'tokens' => $tokens]);
+            return;
         }
 
-        // Simpan expectedStartAt (UTC ISO) untuk verifikasi saat job jalan
-        $expectedUtcIso = $startAtLocal->copy()->utc()->toIso8601String();
+        // // Simpan expectedStartAt (UTC ISO) untuk verifikasi saat job jalan
+        // $expectedUtcIso = $startAtLocal->copy()->utc()->toIso8601String();
 
-        SendJanjiTemuReminder::dispatch(
-            janjiTemuId: $janjiTemuId,
-            expectedStartAtIso: $expectedUtcIso
-        )->delay($remindAtLocal);
-        Log::info('Reminder H-60 scheduled', [
-            'janji_temu_id' => $janjiTemuId,
-            'remind_at' => $remindAtLocal->toIso8601String(),
-            'expected_start_at_utc' => $expectedUtcIso,
-        ]);
+        // SendJanjiTemuReminder::dispatch(
+        //     janjiTemuId: $janjiTemuId,
+        //     expectedStartAtIso: $expectedUtcIso
+        // )->delay($remindAtLocal);
+        // Log::info('Reminder H-60 scheduled', [
+        //     'janji_temu_id' => $janjiTemuId,
+        //     'remind_at' => $remindAtLocal->toIso8601String(),
+        //     'expected_start_at_utc' => $expectedUtcIso,
+        // ]);
     }
 
     public function checkTotalPasien($slotId, $tanggal)
