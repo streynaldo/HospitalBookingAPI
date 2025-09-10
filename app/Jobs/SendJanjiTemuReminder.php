@@ -12,60 +12,108 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SendJanjiTemuReminder implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /** optional tuning */
+    public int $tries = 3;
+    public int $timeout = 30;
+    // public string $queue = 'reminders'; // ← aktifkan ini HANYA jika worker kamu memproses queue 'reminders' (cron tambahkan --queue=reminders,default)
+
     public function __construct(
         public int $janjiTemuId,
-        public string $expectedStartAtIso // waktu mulai yang diharapkan (UTC/ISO) saat dijadwalkan
+        public string $expectedStartAtIso // UTC ISO saat job dijadwalkan
     ) {}
 
     public function handle(ApnsService $apns): void
     {
-        $jt = JanjiTemu::with(['pasien', 'slot', 'dokter'])->find($this->janjiTemuId);
-        if (!$jt || !$jt->pasien) return;
+        Log::info('SendJanjiTemuReminder: START', [
+            'jt_id' => $this->janjiTemuId,
+            'expectedStartAtIso' => $this->expectedStartAtIso,
+        ]);
 
-        // Hitung ulang startAt berdasar data TERKINI. Jika berubah, skip.
+        $jt = JanjiTemu::with(['pasien', 'slot', 'dokter'])->find($this->janjiTemuId);
+        if (!$jt || !$jt->pasien) {
+            Log::warning('JT not found / pasien missing', ['jt_id' => $this->janjiTemuId]);
+            return;
+        }
+
         $tz = config('app.timezone', 'Asia/Jakarta');
         $slot = $jt->slot ?? Slot::find($jt->slot_id);
 
-        // GANTI nama kolom ini kalau beda:
+        // GANTI jika kolom kamu beda
         $slotStart = $slot?->jam_mulai ?? $slot?->mulai ?? $slot?->start_time; // 'HH:mm'
-        if (!$slotStart) return; // tak bisa hitung → skip aman
+        if (!$slotStart) {
+            Log::warning('slotStart missing', ['jt_id' => $jt->id, 'slot_id' => $jt->slot_id]);
+            return;
+        }
 
-        $startAt = Carbon::parse("{$jt->tanggal} {$slotStart}", $tz)->utc();
-        if ($startAt->toIso8601String() !== $this->expectedStartAtIso) {
-            // Jadwal sudah berubah sejak job dijadwalkan → jangan kirim.
+        $startAtUtc   = Carbon::parse("{$jt->tanggal} {$slotStart}", $tz)->utc();
+        $expectedUtc  = Carbon::parse($this->expectedStartAtIso);
+
+        // Jika jadwal berubah sejak dijadwalkan, skip
+        if (!$startAtUtc->equalTo($expectedUtc)) {
+            Log::info('Schedule changed, skip reminder', [
+                'jt_id' => $jt->id,
+                'now_calc' => $startAtUtc->toIso8601String(),
+                'expected' => $this->expectedStartAtIso,
+            ]);
+            return;
+        }
+
+        // Jika (karena alasan apapun) worker telat dan sudah lewat jamnya, skip
+        if (now()->greaterThan($startAtUtc)) {
+            Log::info('Reminder past due, skip', [
+                'jt_id' => $jt->id,
+                'start_at_utc' => $startAtUtc->toIso8601String(),
+                'now_utc' => now()->utc()->toIso8601String(),
+            ]);
             return;
         }
 
         $userId = $jt->pasien->user_id ?? null;
-        if (!$userId) return;
+        if (!$userId) {
+            Log::warning('user_id missing on pasien', ['jt_id' => $jt->id]);
+            return;
+        }
 
         $tokens = DeviceToken::where('user_id', $userId)->where('platform', 'ios')->pluck('token');
-        if ($tokens->isEmpty()) return;
+        if ($tokens->isEmpty()) {
+            Log::info('No iOS tokens for user', ['user_id' => $userId, 'jt_id' => $jt->id]);
+            return;
+        }
 
-        // Compose title/body
-        $startLocal = $startAt->copy()->timezone($tz);
-        $jamTgl = $startLocal->translatedFormat('d M Y, H:i');
+        // Format waktu lokal untuk pesan
+        $startLocal = $startAtUtc->copy()->timezone($tz)->locale('id');
+        $jamTgl     = $startLocal->translatedFormat('d MMM Y, HH:mm');
 
         $title = 'Reminder Janji Temu';
-        $body  = "Janji temu kamu mulai jam {$jamTgl}. Datang tepat waktu ya.";
+        $body  = "Janji temu kamu mulai pada {$jamTgl}. Datang tepat waktu ya.";
 
+        $allResults = [];
         foreach ($tokens as $t) {
-            $apns->sendAlert(
+            $res = $apns->sendAlert(
                 deviceToken: $t,
                 title: $title,
-                body:  $body,
+                body: $body,
                 badge: 1,
                 custom: [
                     'type'        => 'appointment_reminder',
                     'janji_temu'  => $jt->id,
                     'dokter_id'   => $jt->dokter_id,
+                    // 'deeplink'  => 'cihos://home' // kalau nanti mau
                 ],
             );
+            $allResults[] = $res;
         }
+
+        Log::info('SendJanjiTemuReminder: DONE', [
+            'jt_id'   => $jt->id,
+            'tokens'  => $tokens->count(),
+            'results' => $allResults,
+        ]);
     }
 }
