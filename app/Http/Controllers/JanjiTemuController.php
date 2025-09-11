@@ -295,7 +295,7 @@ class JanjiTemuController extends Controller
                     $apns->sendAlert(
                         deviceToken: $t,
                         title: "Janji Temu {$jamTgl}",
-                        body: "Dengan{$janjiTemu->dokter->nama}. Harap hadir 15 menit sebelum waktu untuk registrasi ulang.",
+                        body: "Dengan {$janjiTemu->dokter->nama}. Harap hadir 15 menit sebelum waktu untuk registrasi ulang.",
                         badge: 1,
                         custom: [
                             'type'        => 'appointment_created',
