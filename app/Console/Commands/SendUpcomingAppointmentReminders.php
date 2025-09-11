@@ -61,8 +61,8 @@ class SendUpcomingAppointmentReminders extends Command
                     }
 
                     $jamTgl = $startLocal->locale('id')->translatedFormat('d M Y, H:i');
-                    $title  = 'Reminder Janji Temu';
-                    $body   = "Janji temu kamu dengan {$jt->dokter->nama} pada {$jamTgl} sudah dekat. harap datang 15 menit sebelumnya untuk registrasi ulang.";
+                    $title  = "Janji Temu {$jamTgl}";
+                    $body   = "Dengan {$jt->dokter->nama}. Harap hadir 15 menit sebelum waktu untuk registrasi ulang.";
 
                     $results = [];
                     foreach ($tokens as $t) {
