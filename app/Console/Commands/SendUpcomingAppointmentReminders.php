@@ -60,9 +60,9 @@ class SendUpcomingAppointmentReminders extends Command
                         continue;
                     }
 
-                    $jamTgl = $startLocal->locale('id')->translatedFormat('d MMM Y, HH:mm');
+                    $jamTgl = $startLocal->locale('id')->translatedFormat('d M Y, H:i');
                     $title  = 'Reminder Janji Temu';
-                    $body   = "Janji temu kamu pada {$jamTgl} sudah dekat. harap datang 15 menit sebelumnya untuk registrasi ulang.";
+                    $body   = "Janji temu kamu dengan {$jt->dokter->nama} pada {$jamTgl} sudah dekat. harap datang 15 menit sebelumnya untuk registrasi ulang.";
 
                     $results = [];
                     foreach ($tokens as $t) {
