@@ -1,55 +1,12 @@
-# 🏥 Hospital Booking API
+🥐 About the Project
 
-A Laravel-based backend API for managing doctor appointments, patient data, and hospital schedules — featuring iOS push notifications and secure authentication for a seamless healthcare booking experience.
+Cuupin Backend is a backend system built with Laravel, developed to support a bakery flash-sale and pre-order platform where users can reserve limited bakery items during specific time slots.
+This API powers core features such as product management, dynamic discount sessions, user authentication, and order handling — enabling both bakeries and customers to interact efficiently in real time.
 
----
+The backend ensures smooth operations through secure payment integration, transaction validation, and role-based access control for both bakeries and customers.
+It’s designed with scalability in mind, providing endpoints optimized for mobile and web clients to handle high-traffic booking periods without performance issues.
 
-## 📘 About the Project
+🎯 Goals
 
-**Hospital Booking API** is a backend system built using **Laravel**, designed to simplify the process of **doctor appointment booking** and **schedule management** in hospitals.  
-It enables patients to book doctors easily, receive real-time updates through **APNs notifications**, and provides hospital staff with tools to manage availability and appointments efficiently.
-
-This project focuses on delivering a **secure**, **scalable**, and **user-oriented** healthcare backend — making hospital services more accessible and efficient.
-
----
-
-## ✨ Features
-
-- 🩺 **Doctor Booking System** — Manage doctor schedules and patient appointments seamlessly.  
-- 🔔 **Push Notifications (APNs)** — Real-time updates for appointment confirmations or schedule changes.  
-- 🗓 **Schedule Management** — Doctors and admins can update and manage availability dynamically.  
-- 🔐 **Authentication & Authorization** — Secure login and access control using **Laravel Sanctum**.  
-- 🧾 **Patient Record Handling** — Store and retrieve patient booking data securely.  
-- 📊 **Dashboard Ready** — Backend structured for easy integration with hospital admin dashboards.
-
----
-
-## 🛠 Tech Stack
-
-| Layer | Technology |
-|-------|-------------|
-| **Framework** | Laravel 11 |
-| **Language** | PHP 8.3 |
-| **Database** | MySQL |
-| **Authentication** | Laravel Sanctum |
-| **Notifications** | Apple Push Notification Service (APNs) |
-| **Deployment** | Hostinger VPS + GitHub Actions |
-
----
-
-## ⚙️ Installation
-
-### 1️⃣ Clone Repository
-```bash
-git clone https://github.com/streynaldo/HospitalBookingAPI.git
-cd hospital-booking-api
-composer install
-cp .env.example .env and update following keys
-    APP_NAME="Hospital Booking API"
-    DB_DATABASE=hospital_booking
-    DB_USERNAME=root
-    DB_PASSWORD=
-php artisan migrate
-php artisan serve
-
-
+Cuupin Backend was created to help bakeries reduce product waste and improve sales efficiency by introducing a time-limited reservation system that rewards early and loyal customers.
+The platform aims to connect bakeries with customers through technology that feels simple, fast, and rewarding.
